@@ -37,6 +37,8 @@ from utils.slam_external import calc_ssim, build_rotation, prune_gaussians, dens
 from diff_gaussian_rasterization import GaussianRasterizer as Renderer
 
 
+import rerun as rr
+
 def get_dataset(config_dict, basedir, sequence, **kwargs):
     if config_dict["dataset_name"].lower() in ["icl"]:
         return ICLDataset(config_dict, basedir, sequence, **kwargs)
@@ -214,6 +216,39 @@ def initialize_first_timestep(dataset, num_frames, scene_radius_depth_ratio,
 def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_for_loss,
              sil_thres, use_l1, ignore_outlier_depth_loss, tracking=False, 
              mapping=False, do_ba=False, plot_dir=None, visualize_tracking_loss=False, tracking_iteration=None):
+    '''
+    params:
+        ['means3D', 'rgb_colors', 'unnorm_rotations', 'logit_opacities', 'log_scales', 'cam_unnorm_rots', 'cam_trans']
+        高斯点的属性
+    curr_data:
+        ['cam', 'im', 'depth', 'id', 'intrinsics', 'w2c', 'iter_gt_w2c_list']
+        当前图像等数据
+            cam：GaussianRasterizationSettings，包含了各种渲染设置和相机位姿态
+            im：RGB图像
+            depth：深度图
+            id：总的序列的idx，第几张图像
+            intrinsics：内参矩阵
+            w2c：位姿的转置
+            iter_gt_w2c_list：？
+    variables：
+        ['max_2D_radius', 'means2D_gradient_accum', 'denom', 'timestep', 'scene_radius', 'means2D', 'seen']
+        中间变量
+    iter_time_idx:
+        总的序列的idx，第几张图像
+    loss_weights:
+        ['im', 'depth']
+        loss的权重系数
+    use_sil_for_loss:
+        bool变量，此处取True
+    sil_thres：
+        定值，此处取0.99
+    use_l1：
+        bool变量，此处取True
+    ignore_outlier_depth_loss：
+        bool变量，此处取False
+
+
+    '''
     # Initialize Loss Dictionary
     losses = {}
 
@@ -222,6 +257,8 @@ def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_
         transformed_gaussians = transform_to_frame(params, iter_time_idx, 
                                              gaussians_grad=False,
                                              camera_grad=True)
+    #     将高斯点旋转到当前相机位姿下
+
     elif mapping:
         if do_ba:
             # Get current frame Gaussians, where both camera pose and Gaussians get gradient
@@ -241,8 +278,10 @@ def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_
 
     # Initialize Render Variables
     rendervar = transformed_params2rendervar(params, transformed_gaussians)
+    # 把高斯点的属性提取出来
     depth_sil_rendervar = transformed_params2depthplussilhouette(params, curr_data['w2c'],
                                                                  transformed_gaussians)
+    # 渲染深度图的高斯
 
     # RGB Rendering
     rendervar['means2D'].retain_grad()
@@ -337,6 +376,7 @@ def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_
         # plt.close()
 
     weighted_losses = {k: v * loss_weights[k] for k, v in losses.items()}
+    # 加权loss
     loss = sum(weighted_losses.values())
 
     seen = radius > 0
@@ -453,6 +493,9 @@ def convert_params_to_store(params):
 
 
 def rgbd_slam(config: dict):
+    print("rerun vis")
+    rr.init("test")
+    rr.connect()
     # Print Config
     print("Loaded Config:")
     if "use_depth_loss_thres" not in config['tracking']:
@@ -672,6 +715,7 @@ def rgbd_slam(config: dict):
         # Initialize the camera pose for the current frame
         if time_idx > 0:
             params = initialize_camera_pose(params, time_idx, forward_prop=config['tracking']['forward_prop'])
+        #     基于恒定速度模型
 
         # Tracking
         tracking_start_time = time.time()
@@ -693,7 +737,7 @@ def rgbd_slam(config: dict):
                 loss, variables, losses = get_loss(params, tracking_curr_data, variables, iter_time_idx, config['tracking']['loss_weights'],
                                                    config['tracking']['use_sil_for_loss'], config['tracking']['sil_thres'],
                                                    config['tracking']['use_l1'], config['tracking']['ignore_outlier_depth_loss'], tracking=True, 
-                                                   plot_dir=eval_dir, visualize_tracking_loss=config['tracking']['visualize_tracking_loss'],
+                                                   plot_dir=eval_dir, visualize_tracking_loss=False,
                                                    tracking_iteration=iter)
                 if config['use_wandb']:
                     # Report Loss

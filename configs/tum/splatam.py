@@ -3,7 +3,7 @@ from os.path import join as p_join
 
 primary_device = "cuda:0"
 
-scenes = ["freiburg1_desk", "freiburg1_desk2", "freiburg1_room", "freiburg2_xyz", "freiburg3_long_office_household"]
+scenes = ["freiburg1_desk"]
 
 seed = int(0)
 scene_name = scenes[int(0)]
@@ -13,6 +13,7 @@ keyframe_every = 5
 mapping_window_size = 20
 tracking_iters = 200
 mapping_iters = 30
+
 scene_radius_depth_ratio = 2
 
 group_name = "TUM"
@@ -27,7 +28,7 @@ config = dict(
     keyframe_every=keyframe_every, # Keyframe every nth frame
     mapping_window_size=mapping_window_size, # Mapping window size
     report_global_progress_every=500, # Report Global Progress every nth frame
-    eval_every=500, # Evaluate every nth frame (at end of SLAM)
+    eval_every=1, # Evaluate every nth frame (at end of SLAM)
     scene_radius_depth_ratio=scene_radius_depth_ratio, # Max First Frame Depth to Scene Radius Ratio (For Pruning/Densification)
     mean_sq_dist_method="projective", # ["projective", "knn"] (Type of Mean Squared Distance Calculation for Scale of Gaussians)
     gaussian_distribution="isotropic", # ["isotropic", "anisotropic"] (Isotropic -> Spherical Covariance, Anisotropic -> Ellipsoidal Covariance)
@@ -36,7 +37,7 @@ config = dict(
     checkpoint_time_idx=0,
     save_checkpoints=False, # Save Checkpoints
     checkpoint_interval=100, # Checkpoint Interval
-    use_wandb=True,
+    use_wandb=False,
     wandb=dict(
         entity="theairlab",
         project="SplaTAM",
@@ -46,7 +47,7 @@ config = dict(
         eval_save_qual=True,
     ),
     data=dict(
-        basedir="./data/TUM_RGBD",
+        basedir="./data/data/tum",
         gradslam_data_cfg=f"./configs/data/TUM/{scene_name}.yaml",
         sequence=f"rgbd_dataset_{scene_name}",
         desired_image_height=480,

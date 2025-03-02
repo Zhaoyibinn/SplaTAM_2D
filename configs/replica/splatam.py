@@ -1,9 +1,7 @@
 import os
 from os.path import join as p_join
 
-scenes = ["room0", "room1", "room2",
-          "office0", "office1", "office2",
-          "office_", "office4"]
+scenes = ["office1"]
 
 primary_device="cuda:0"
 seed = 0
@@ -12,8 +10,8 @@ scene_name = scenes[0]
 map_every = 1
 keyframe_every = 5
 mapping_window_size = 24
-tracking_iters = 40
-mapping_iters = 60
+tracking_iters = 10
+mapping_iters = 15
 
 group_name = "Replica"
 run_name = f"{scene_name}_{seed}"
@@ -36,7 +34,7 @@ config = dict(
     checkpoint_time_idx=0,
     save_checkpoints=False, # Save Checkpoints
     checkpoint_interval=100, # Checkpoint Interval
-    use_wandb=True,
+    use_wandb=False,
     wandb=dict(
         entity="theairlab",
         project="SplaTAM",
@@ -46,7 +44,7 @@ config = dict(
         eval_save_qual=True,
     ),
     data=dict(
-        basedir="./data/Replica",
+        basedir="./data/data/replica/origin",
         gradslam_data_cfg="./configs/data/replica.yaml",
         sequence=scene_name,
         desired_image_height=680,

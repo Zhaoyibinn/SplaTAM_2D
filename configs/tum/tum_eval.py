@@ -3,7 +3,7 @@ from os.path import join as p_join
 
 primary_device = "cuda:0"
 
-scenes = ["freiburg1_desk", "freiburg1_desk2", "freiburg1_room", "freiburg2_xyz", "freiburg3_long_office_household"]
+scenes = ["freiburg1_desk"]
 
 seed = int(os.environ["SEED"])
 scene_name = scenes[int(os.environ["SCENE_NUM"])]
@@ -11,8 +11,8 @@ scene_name = scenes[int(os.environ["SCENE_NUM"])]
 map_every = 1
 keyframe_every = 5
 mapping_window_size = 20
-tracking_iters = 200
-mapping_iters = 30
+tracking_iters = 50
+mapping_iters = 15
 scene_radius_depth_ratio = 2
 
 group_name = "TUM"
@@ -46,7 +46,7 @@ config = dict(
         eval_save_qual=True,
     ),
     data=dict(
-        basedir="./data/TUM_RGBD",
+        basedir="./data/data/tum",
         gradslam_data_cfg=f"./configs/data/TUM/{scene_name}.yaml",
         sequence=f"rgbd_dataset_{scene_name}",
         desired_image_height=480,

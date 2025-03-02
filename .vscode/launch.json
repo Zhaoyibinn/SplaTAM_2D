@@ -1,0 +1,49 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        
+        {
+            "name": "train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/splatam.py",
+            "pythonPath":"/home/zhaoyibin/anaconda3/envs/splatam/bin/python",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["configs/tum/splatam.py"
+
+            ]
+            // "cwd": "${workspaceFolder}/taichi_decoupled"
+        },
+        {
+            "name": "ply",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/export_ply.py",
+            "pythonPath":"/home/zhaoyibin/anaconda3/envs/splatam/bin/python",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["configs/replica/splatam.py"
+
+            ]
+            // "cwd": "${workspaceFolder}/taichi_decoupled"
+        },
+        {
+            "name": "eval_novel_view",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/eval_novel_view.py",
+            "pythonPath":"/home/zhaoyibin/anaconda3/envs/splatam/bin/python",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": ["configs/tum/tum_eval.py"
+
+            ]
+            // "cwd": "${workspaceFolder}/taichi_decoupled"
+        },
+    ]
+}

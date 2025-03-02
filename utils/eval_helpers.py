@@ -19,7 +19,7 @@ from diff_gaussian_rasterization import GaussianRasterizer as Renderer
 from pytorch_msssim import ms_ssim
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 loss_fn_alex = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).cuda()
-
+from zybtools.ssim import ssim as ssim_3dgs
 def align(model, data):
     """Align two trajectories using the method of Horn (closed-form).
 
@@ -415,6 +415,8 @@ def eval(dataset, final_params, num_frames, eval_dir, sil_thres,
     ssim_list = []
     plot_dir = os.path.join(eval_dir, "plots")
     os.makedirs(plot_dir, exist_ok=True)
+    depth_dir = os.path.join(eval_dir, "depth")
+    os.makedirs(depth_dir, exist_ok=True)
     if save_frames:
         render_rgb_dir = os.path.join(eval_dir, "rendered_rgb")
         os.makedirs(render_rgb_dir, exist_ok=True)
@@ -436,6 +438,9 @@ def eval(dataset, final_params, num_frames, eval_dir, sil_thres,
         # Process RGB-D Data
         color = color.permute(2, 0, 1) / 255 # (H, W, C) -> (C, H, W)
         depth = depth.permute(2, 0, 1) # (H, W, C) -> (C, H, W)
+
+       
+        # cv2.imread(depth_dir +"/depth" + str(time_idx) + ".tiff")
 
         if time_idx == 0:
             # Process Camera Parameters
@@ -463,6 +468,7 @@ def eval(dataset, final_params, num_frames, eval_dir, sil_thres,
         # Render Depth & Silhouette
         depth_sil, _, _, = Renderer(raster_settings=curr_data['cam'])(**depth_sil_rendervar)
         rastered_depth = depth_sil[0, :, :].unsqueeze(0)
+        cv2.imwrite(depth_dir +"/depth" + str(time_idx) + ".tiff",np.array(rastered_depth[0].cpu().detach()))
         # Mask invalid depth in GT
         valid_depth_mask = (curr_data['depth'] > 0)
         rastered_depth_viz = rastered_depth.detach()
@@ -479,8 +485,9 @@ def eval(dataset, final_params, num_frames, eval_dir, sil_thres,
             weighted_im = im * valid_depth_mask
             weighted_gt_im = curr_data['im'] * valid_depth_mask
         psnr = calc_psnr(weighted_im, weighted_gt_im).mean()
-        ssim = ms_ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu(), 
-                        data_range=1.0, size_average=True)
+        # ssim = ms_ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu(), 
+        #                 data_range=1.0, size_average=True)
+        ssim = ssim_3dgs(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu())
         lpips_score = loss_fn_alex(torch.clamp(weighted_im.unsqueeze(0), 0.0, 1.0),
                                     torch.clamp(weighted_gt_im.unsqueeze(0), 0.0, 1.0)).item()
 

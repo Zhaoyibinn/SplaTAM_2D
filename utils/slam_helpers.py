@@ -252,7 +252,7 @@ def transformed_params2depthplussilhouette(params, w2c, transformed_gaussians):
 def transform_to_frame(params, time_idx, gaussians_grad, camera_grad):
     """
     Function to transform Isotropic or Anisotropic Gaussians from world frame to camera frame.
-    
+    将世界坐标系中的高斯分布（无论是各向同性还是各向异性）转换到相机坐标系中
     Args:
         params: dict of parameters
         time_idx: time index to transform to
@@ -263,6 +263,7 @@ def transform_to_frame(params, time_idx, gaussians_grad, camera_grad):
         transformed_gaussians: Transformed Gaussians (dict containing means3D & unnorm_rotations)
     """
     # Get Frame Camera Pose
+    # 这里就是相机位姿是否要被优化
     if camera_grad:
         cam_rot = F.normalize(params['cam_unnorm_rots'][..., time_idx])
         cam_tran = params['cam_trans'][..., time_idx]
@@ -272,14 +273,18 @@ def transform_to_frame(params, time_idx, gaussians_grad, camera_grad):
     rel_w2c = torch.eye(4).cuda().float()
     rel_w2c[:3, :3] = build_rotation(cam_rot)
     rel_w2c[:3, 3] = cam_tran
+    # 世界到相机的转换矩阵
 
     # Check if Gaussians need to be rotated (Isotropic or Anisotropic)
     if params['log_scales'].shape[1] == 1:
         transform_rots = False # Isotropic Gaussians
+    #     文中将高斯分布简化为各向同性的，也就是变成了个球
     else:
         transform_rots = True # Anisotropic Gaussians
+    #     判断高斯的scale是否需要旋转
     
     # Get Centers and Unnorm Rots of Gaussians in World Frame
+    # 高斯是否要被优化
     if gaussians_grad:
         pts = params['means3D']
         unnorm_rots = params['unnorm_rotations']
@@ -291,9 +296,12 @@ def transform_to_frame(params, time_idx, gaussians_grad, camera_grad):
     # Transform Centers of Gaussians to Camera Frame
     pts_ones = torch.ones(pts.shape[0], 1).cuda().float()
     pts4 = torch.cat((pts, pts_ones), dim=1)
+    # 原本三维点，又加一维，为了方便和四维的变换矩阵相乘
     transformed_pts = (rel_w2c @ pts4.T).T[:, :3]
     transformed_gaussians['means3D'] = transformed_pts
+
     # Transform Rots of Gaussians to Camera Frame
+    # 旋转那些需要旋转的rot
     if transform_rots:
         norm_rots = F.normalize(unnorm_rots)
         transformed_rots = quat_mult(cam_rot, norm_rots)

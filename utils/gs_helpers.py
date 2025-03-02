@@ -13,7 +13,9 @@ from diff_gaussian_rasterization import GaussianRasterizer as Renderer
 
 from pytorch_msssim import ms_ssim
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
-loss_fn_alex = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).cuda()
+loss_fn_alex = LearnedPerceptualImagePatchSimilarity(net_type='alex', normalize=True).cuda()\
+
+from zybtools.ssim import ssim
 
 def l1_loss_v1(x, y):
     return torch.abs((x - y)).mean()
@@ -508,14 +510,16 @@ def eval(dataset, final_params, num_frames, eval_dir, sil_thres, mapping_iters, 
             weighted_im = im * presence_sil_mask
             weighted_gt_im = curr_data['im'] * presence_sil_mask
             psnr = calc_psnr(weighted_im, weighted_gt_im).mean()
-            ssim = ms_ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu(), 
-                           data_range=1.0, size_average=True)
+            # ssim = ms_ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu(), 
+            #                data_range=1.0, size_average=True)
+            ssim = ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu())
             lpips_score = loss_fn_alex(torch.clamp(weighted_im.unsqueeze(0), 0.0, 1.0),
                                        torch.clamp(weighted_gt_im.unsqueeze(0), 0.0, 1.0)).item()
         else:
             psnr = calc_psnr(im, curr_data['im']).mean()
-            ssim = ms_ssim(im.unsqueeze(0).cpu(), curr_data['im'].unsqueeze(0).cpu(), 
-                           data_range=1.0, size_average=True)
+            # ssim = ms_ssim(im.unsqueeze(0).cpu(), curr_data['im'].unsqueeze(0).cpu(), 
+            #                data_range=1.0, size_average=True)['/  ]
+            ssim = ssim(weighted_im.unsqueeze(0).cpu(), weighted_gt_im.unsqueeze(0).cpu())
             lpips_score = loss_fn_alex(torch.clamp(im.unsqueeze(0), 0.0, 1.0),
                                        torch.clamp(curr_data['im'].unsqueeze(0), 0.0, 1.0)).item()
 
