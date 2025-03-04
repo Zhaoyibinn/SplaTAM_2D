@@ -124,7 +124,8 @@ def params2rendervar(params):
 def transformed_params2rendervar(params, transformed_gaussians):
     # Check if Gaussians are Isotropic
     if params['log_scales'].shape[1] == 1:
-        log_scales = torch.tile(params['log_scales'], (1, 3))
+        # log_scales = torch.tile(params['log_scales'], (1, 3)) #3DGS是三维，2DGS就两维
+        log_scales = torch.tile(params['log_scales'], (1, 2))
     else:
         log_scales = params['log_scales']
     # Initialize Render Variables
@@ -234,7 +235,8 @@ def params2depthplussilhouette(params, w2c):
 def transformed_params2depthplussilhouette(params, w2c, transformed_gaussians):
     # Check if Gaussians are Isotropic
     if params['log_scales'].shape[1] == 1:
-        log_scales = torch.tile(params['log_scales'], (1, 3))
+        # log_scales = torch.tile(params['log_scales'], (1, 3))  #3DGS是三维，2DGS就两维
+        log_scales = torch.tile(params['log_scales'], (1, 2))
     else:
         log_scales = params['log_scales']
     # Initialize Render Variables

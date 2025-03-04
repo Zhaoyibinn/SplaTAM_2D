@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
 
-from diff_gaussian_rasterization import GaussianRasterizer as Renderer
-from diff_gaussian_rasterization import GaussianRasterizationSettings as Camera
+from diff_surfel_rasterization import GaussianRasterizer as Renderer
+from diff_surfel_rasterization import GaussianRasterizationSettings as Camera
 
 from utils.common_utils import seed_everything
 from utils.recon_helpers import setup_camera

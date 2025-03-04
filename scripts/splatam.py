@@ -34,7 +34,7 @@ from utils.slam_helpers import (
 )
 from utils.slam_external import calc_ssim, build_rotation, prune_gaussians, densify
 
-from diff_gaussian_rasterization import GaussianRasterizer as Renderer
+from diff_surfel_rasterization import GaussianRasterizer as Renderer
 
 
 import rerun as rr
@@ -251,6 +251,7 @@ def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_
     '''
     # Initialize Loss Dictionary
     losses = {}
+    rendered_pkgs = {}
 
     if tracking:
         # Get current frame Gaussians, where only the camera pose gets gradient
@@ -383,8 +384,14 @@ def get_loss(params, curr_data, variables, iter_time_idx, loss_weights, use_sil_
     variables['max_2D_radius'][seen] = torch.max(radius[seen], variables['max_2D_radius'][seen])
     variables['seen'] = seen
     weighted_losses['loss'] = loss
+    
+    rendered_pkgs['rendered_rgb'] = im
+    rendered_pkgs['gt_rgb'] = curr_data['im']
+    rendered_pkgs['rendered_depth'] = depth
+    rendered_pkgs['gt_depth'] = curr_data['depth']
 
-    return loss, variables, weighted_losses
+
+    return loss, variables, weighted_losses,rendered_pkgs
 
 
 def initialize_new_params(new_pt_cld, mean3_sq_dist, gaussian_distribution):
@@ -493,9 +500,11 @@ def convert_params_to_store(params):
 
 
 def rgbd_slam(config: dict):
-    print("rerun vis")
-    rr.init("test")
-    rr.connect()
+    rrlog = True
+    if rrlog == True:
+        print("rerun vis")
+        rr.init("test")
+        rr.connect()
     # Print Config
     print("Loaded Config:")
     if "use_depth_loss_thres" not in config['tracking']:
@@ -734,7 +743,7 @@ def rgbd_slam(config: dict):
             while True:
                 iter_start_time = time.time()
                 # Loss for current frame
-                loss, variables, losses = get_loss(params, tracking_curr_data, variables, iter_time_idx, config['tracking']['loss_weights'],
+                loss, variables, losses , rendered_pkgs = get_loss(params, tracking_curr_data, variables, iter_time_idx, config['tracking']['loss_weights'],
                                                    config['tracking']['use_sil_for_loss'], config['tracking']['sil_thres'],
                                                    config['tracking']['use_l1'], config['tracking']['ignore_outlier_depth_loss'], tracking=True, 
                                                    plot_dir=eval_dir, visualize_tracking_loss=False,
@@ -888,7 +897,7 @@ def rgbd_slam(config: dict):
                 iter_data = {'cam': cam, 'im': iter_color, 'depth': iter_depth, 'id': iter_time_idx, 
                              'intrinsics': intrinsics, 'w2c': first_frame_w2c, 'iter_gt_w2c_list': iter_gt_w2c}
                 # Loss for current frame
-                loss, variables, losses = get_loss(params, iter_data, variables, iter_time_idx, config['mapping']['loss_weights'],
+                loss, variables, losses,rendered_pkgs = get_loss(params, iter_data, variables, iter_time_idx, config['mapping']['loss_weights'],
                                                 config['mapping']['use_sil_for_loss'], config['mapping']['sil_thres'],
                                                 config['mapping']['use_l1'], config['mapping']['ignore_outlier_depth_loss'], mapping=True)
                 if config['use_wandb']:
@@ -933,6 +942,22 @@ def rgbd_slam(config: dict):
             mapping_end_time = time.time()
             mapping_frame_time_sum += mapping_end_time - mapping_start_time
             mapping_frame_time_count += 1
+
+            if rrlog == True and time_idx%20==0:
+                rr.set_time_sequence("step", time_idx)
+                gt_rgb_np = np.array(np.transpose(rendered_pkgs["gt_rgb"].cpu().detach(), (1, 2, 0)) * 255)
+                rr.log(f"images/mapping/render_gt",rr.Image(gt_rgb_np))
+                rendered_rgb_np = np.array(np.transpose(rendered_pkgs["rendered_rgb"].cpu().detach(), (1, 2, 0)) * 255)
+                rendered_rgb_np = np.clip(rendered_rgb_np,0,255)
+                rr.log(f"images/mapping/render_rgb",rr.Image(rendered_rgb_np))
+                
+                gt_depth_np = np.array(np.transpose(rendered_pkgs["gt_depth"].cpu().detach(), (1, 2, 0)) * 255)
+                rr.log(f"images/mapping/gt_depth",rr.Image(gt_depth_np))
+                rendered_depth_np = np.array(np.transpose(rendered_pkgs["rendered_depth"].cpu().detach(), (1, 2, 0)) * 255)
+                rr.log(f"images/mapping/rendered_depth",rr.Image(rendered_depth_np))
+
+
+                
 
             if time_idx == 0 or (time_idx+1) % config['report_global_progress_every'] == 0:
                 try:

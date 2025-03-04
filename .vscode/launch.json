@@ -11,7 +11,7 @@
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/scripts/splatam.py",
-            "pythonPath":"/home/zhaoyibin/anaconda3/envs/splatam/bin/python",
+            "pythonPath":"/home/zhaoyibin/anaconda3/envs/splatam_2d/bin/python",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": ["configs/tum/splatam.py"
